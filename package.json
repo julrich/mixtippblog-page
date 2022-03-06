@@ -1,0 +1,50 @@
+{
+  "name": "@mixtippblog/website",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": {
+    "name": "Jonas Ulrich",
+    "email": "jonas.ulrich@ruhmesmeile.com"
+  },
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "yarn generate && gatsby build",
+    "dev": "yarn generate && gatsby develop",
+    "serve": "gatsby serve",
+    "clean": "gatsby clean",
+    "bundle": "cp -r node_modules/@kickstartds/design-system/dist/* static/",
+    "generate": "node node_modules/@kickstartds/generate-from-schema/dist/index.js && yarn graphql codegen && cp dist/config.yml static/admin/config.yml && yarn bundle",
+    "netlify": "yarn generate && sed -i '7d' static/admin/config.yml && gatsby build"
+  },
+  "dependencies": {
+    "@graphql-cli/codegen": "^1.17.25",
+    "@graphql-codegen/cli": "^1.21.6",
+    "@kickstartds/design-system": "^1.13.0",
+    "@kickstartds/gatsby-theme-kickstartds": "^1.14.1",
+    "@kickstartds/gatsby-transformer-kickstartds-contentful": "^1.8.1",
+    "@kickstartds/gatsby-transformer-kickstartds-mdx": "^1.3.1",
+    "@kickstartds/gatsby-transformer-kickstartds-netlify-cms": "^1.12.1",
+    "@kickstartds/gatsby-transformer-kickstartds-wordpress": "^1.9.1",
+    "@kickstartds/generate-from-schema": "^0.7.16",
+    "@makotot/ghostui": "^2.0.0",
+    "dotenv": "^10.0.0",
+    "gatsby": "^4.1.0",
+    "gatsby-plugin-advanced-sitemap": "^2.0.0",
+    "gatsby-plugin-feed": "^4.1.0",
+    "gatsby-plugin-force-trailing-slashes": "^1.0.5",
+    "gatsby-plugin-google-gtag": "^4.1.0",
+    "gatsby-plugin-hotjar": "^1.1.1",
+    "gatsby-plugin-manifest": "^4.1.0",
+    "gatsby-plugin-netlify": "^3.14.0",
+    "gatsby-plugin-react-helmet": "^5.1.0",
+    "gatsby-remark-shiki-twoslash": "^3.0.30",
+    "gatsby-source-filesystem": "^4.1.0",
+    "graphql": "^15.5.1",
+    "graphql-cli": "^4.1.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-grid-layout": "^1.3.0",
+    "react-helmet": "^6.1.0",
+    "string-strip-html": "^8.3.0"
+  }
+}

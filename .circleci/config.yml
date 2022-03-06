@@ -1,0 +1,116 @@
+version: 2.1
+
+general:
+  branches:
+    ignore: /.*/
+
+parameters:
+  run_workflow_update:
+    default: false
+    type: boolean
+
+aliases:
+  - &save-cache-yarn
+    key: yarn-{{ checksum "yarn.lock" }}-{{ checksum ".circleci/config.yml" }}
+    paths:
+      - .yarn-cache
+  - &restore-cache-yarn
+    keys:
+      - yarn-{{ checksum "yarn.lock" }}-{{ checksum ".circleci/config.yml" }}
+      # - yarn-{{ checksum "yarn.lock" }}
+  - &save-cache-node
+    key: node-{{ checksum "yarn.lock" }}-{{ checksum ".circleci/config.yml" }}
+    paths:
+      - node_modules
+  - &restore-cache-node
+    keys:
+      - node-{{ checksum "yarn.lock" }}-{{ checksum ".circleci/config.yml" }}
+      - node-{{ checksum "yarn.lock" }}
+      - node-
+
+commands:
+  pre_yarn:
+    steps:
+      - restore_cache: *restore-cache-yarn
+      - restore_cache: *restore-cache-node
+      - run:
+          name: Set NPM_TOKEN into .npmrc
+          command: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+  post_yarn:
+    steps:
+      - run:
+          name: Remove .npmrc
+          command: rm .npmrc
+      - save_cache: *save-cache-yarn
+      - save_cache: *save-cache-node
+
+jobs:
+  update_design_system:
+    docker:
+      - image: cimg/node:14.17
+
+    steps:
+      - checkout
+      - pre_yarn
+      - run:
+          name: Upgrade @kickstartds/design-system
+          command: yarn upgrade @kickstartds/design-system --cache-folder .yarn-cache
+      - post_yarn
+      - run:
+          name: Check for changes
+          command: git diff --exit-code yarn.lock && circleci-agent step halt || true
+      - run:
+          name: Push yarn.lock
+          command: |
+            git config credential.helper 'cache --timeout=120'
+            git config user.email "username@example.com"
+            git config user.name "CircleCI"
+            git add yarn.lock
+            git commit -m "chore(dependencies): update design-system"
+            git push -q https://${GH_TOKEN}@github.com/kickstartDS/website.git ${CIRCLE_BRANCH} > /dev/null 2>&1
+
+  build:
+    docker:
+      - image: cimg/node:14.17
+    resource_class: large
+
+    steps:
+      - checkout
+      - pre_yarn
+      - run:
+          name: Install Dependencies
+          command: yarn install --frozen-lockfile --cache-folder .yarn-cache
+      - post_yarn
+      - run:
+          name: Build gatsby site
+          command: yarn netlify
+      - run:
+          name: Compress public folder
+          command: tar -czf website.tar.gz public
+      - store_artifacts:
+          path: website.tar.gz
+      - run:
+          name: Trigger website deployment
+          command: |
+            curl --request POST \
+              --url "https://circleci.com/api/v2/project/gh/kickstartDS/website-deployment/pipeline" \
+              --header "Circle-Token: ${CIRCLE_CI_WEBSITE_BUILD_TOKEN}" \
+              --header "content-type: application/json" \
+              --data '{"branch":"master","parameters":{"run_workflow_deploy":true}}'
+
+workflows:
+  version: 2
+  update:
+    when: << pipeline.parameters.run_workflow_update >>
+    jobs:
+      - update_design_system:
+          context: kickstartDS
+
+  build:
+    unless: << pipeline.parameters.run_workflow_update >>
+    jobs:
+      - build:
+          context: kickstartDS
+          filters:
+            branches:
+              only: master
