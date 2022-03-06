@@ -28,7 +28,7 @@ export const BlogDetailPage: FunctionComponent<any> = ({
 }) => {
   const images = useStaticQuery(graphql`
     query {
-      profileImage: file(relativePath: { eq: "img/profile.jpg" }) {
+      profileImage: file(relativePath: { eq: "images/profile.jpg" }) {
         publicURL
       }
     }
